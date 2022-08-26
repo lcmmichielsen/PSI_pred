@@ -12,7 +12,7 @@ import numpy as np
 from torch.utils.data import Dataset
 
 
-class emb_only(Dataset):
+class EmbOnly(Dataset):
     """Using the SpliceAI embeddings as input to a network only."""
     
     def __init__(self, fn_emb, fn_PSI, idx, cols=[2,3,4,5,6]):

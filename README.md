@@ -2,6 +2,10 @@
 
 /athena/tilgnerlab/store/lim4020/HumanBrainHippProject
 
+Downsamples PSI values and embeddings: 
+- downsampled_PSI.csv (contains also column 'HumanGene' with the genename and 'variabilityStatus' with the group it belongs to (low/medium/high/cons_low/cons_high/fake))
+- downsampled_emb.csv
+
 PSI values:
 - variable exons: altInHumans_10_90_cellType_withClassification
 - const. exons: consInHumans_5_95_cellType

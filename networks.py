@@ -34,10 +34,14 @@ class MLP(nn.Module):
             fc_layers.append(nn.Linear(input_dim, output_dim))
         else:
             fc_layers.append(nn.Linear(input_dim, hidden_dim[0]))
+            fc_layers.append(nn.Dropout())
             fc_layers.append(nn.ReLU())
+            fc_layers.append(nn.BatchNorm1d(num_features=hidden_dim[0]))
             for i in range(len(hidden_dim)-1):
                 fc_layers.append(nn.Linear(hidden_dim[i], hidden_dim[i+1]))
+                fc_layers.append(nn.Dropout())
                 fc_layers.append(nn.ReLU())
+                fc_layers.append(nn.BatchNorm1d(num_features=hidden_dim[i+1]))
             fc_layers.append(nn.Linear(hidden_dim[-1], output_dim))
         
         # Ensure that all output is in the range of 0-1 since we predict prob.

@@ -45,12 +45,14 @@ def evaluate(device, net, criterion, eval_loader):
     avg_loss = 0.0
     y_true = []
     y_pred = []
+    IDs = []
     with torch.no_grad():   # set all 'requires_grad' to False
         for data in eval_loader:
             # Get current batch and transfer to device
             PSI = data['PSI'].to(device, dtype=torch.float)
             tokeep = torch.isnan(PSI) == False
             emb = data['emb'].to(device, dtype=torch.float)
+            ID = data['ID'].to(device, dtype=torch.int)
             
             # Forward pass
             out = net(emb)
@@ -61,8 +63,9 @@ def evaluate(device, net, criterion, eval_loader):
             avg_loss += current_loss.item() / len(eval_loader)
             y_true.append(PSI.cpu().numpy().squeeze())
             y_pred.append(out.cpu().numpy().squeeze())
+            IDs.append(ID.cpu().numpy().squeeze())
 
-    return avg_loss, y_true, y_pred
+    return avg_loss, y_true, y_pred, IDs
 
 
 def train(device, net, criterion, learning_rate, lr_sched, num_epochs, 
@@ -88,7 +91,7 @@ def train(device, net, criterion, learning_rate, lr_sched, num_epochs,
     
     # Evaluate validation set before start training
     print("[*] Evaluating epoch %d..." % start_epoch)
-    avg_valid_loss, _, _ = evaluate(device, net, criterion, valid_loader)
+    avg_valid_loss, _, _, _ = evaluate(device, net, criterion, valid_loader)
     print("--- Average valid loss:                  %.4f" % avg_valid_loss)
 
     # Training epochs
@@ -131,12 +134,12 @@ def train(device, net, criterion, learning_rate, lr_sched, num_epochs,
         # Evaluate all training set and validation set at epoch
         print("[*] Evaluating epoch %d..." % (epoch + 1))
         if evaluate_train:
-            avg_train_loss, _, _ = evaluate(device, net, criterion, train_loader_eval)
+            avg_train_loss, _, _, _ = evaluate(device, net, criterion, train_loader_eval)
             print("--- Average train loss:                  %.4f" % avg_train_loss)
             
             logger.add_scalar('train_loss_epoch', avg_train_loss, epoch + 1)
 
-        avg_valid_loss, _, _ = evaluate(device, net, criterion, valid_loader)
+        avg_valid_loss, _, _, _ = evaluate(device, net, criterion, valid_loader)
         print("--- Average valid loss:                  %.4f" % avg_valid_loss)
         
         # Check if best model
@@ -164,11 +167,11 @@ def test(device, net, criterion, model_file, test_loader, save_file=None):
     _ = load_checkpoint(net, filename=model_file)
     
     # Evaluate model
-    avg_test_loss, y_true, y_pred = evaluate(device, net, criterion, test_loader)
+    avg_test_loss, y_true, y_pred, ID = evaluate(device, net, criterion, test_loader)
 
     # Save predictions
     if save_file is not None:
-        pickle.dump({'y_true': y_true, 'y_pred': y_pred}, open(save_file, 'wb'))
+        pickle.dump({'y_true': y_true, 'y_pred': y_pred, 'ID': ID}, open(save_file, 'wb'))
 
     # Display evaluation metrics
     print("--- Average test loss:                  %.4f" % avg_test_loss)

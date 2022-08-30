@@ -31,7 +31,7 @@ parser.add_argument('--hidden_MLP',     dest='hidden_MLP',          default='0',
                     help='Dimensions of hidden layers MLP model (separated by commas), 0 means no hidden layers')
 parser.add_argument('--output_MLP',     dest='output_MLP',          type=int,       default=5,
                     help='Output dimension of MLP model')
-parser.add_argument('--var_status',     dest='var_status',          type=str,       default="Cons_high,Cons_low,High,Low,Medium",
+parser.add_argument('--var_tokeep',     dest='var_tokeep',          type=str,       default="Cons_high,Cons_low,Fake,High,Low,Medium",
                     help='Which type of exons to use during training')
 parser.add_argument('--output_dir',     dest='output_dir',          type=str,       default='output',
                     help='Directory to save the model and predictions')
@@ -41,7 +41,7 @@ args = parser.parse_args()
 
 cols_PSI = np.asarray(args.cols_PSI.split(','), dtype=int)
 output_MLP = args.output_MLP
-var_status = np.asarray(args.var_status.split(','))
+var_tokeep = np.asarray(args.var_tokeep.split(','))
 output_dir = args.output_dir
 
 if args.hidden_MLP == '0':
@@ -94,6 +94,9 @@ for train_val_idxs, test_idxs in cv.split(varStatus, varStatus, genes):
         break
     
     # Filter the train-val-test idxs by var status
+    train_idxs = train_idxs[np.squeeze(np.isin(varStatus[train_idxs], var_tokeep))]
+    val_idxs = val_idxs[np.squeeze(np.isin(varStatus[val_idxs], var_tokeep))]
+    test_idxs = test_idxs[np.squeeze(np.isin(varStatus[test_idxs], var_tokeep))]
     
     # Create dataloaders
     if data == 'EmbOnly':

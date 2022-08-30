@@ -31,13 +31,17 @@ parser.add_argument('--hidden_MLP',     dest='hidden_MLP',          default='0',
                     help='Dimensions of hidden layers MLP model (separated by commas), 0 means no hidden layers')
 parser.add_argument('--output_MLP',     dest='output_MLP',          type=int,       default=5,
                     help='Output dimension of MLP model')
+parser.add_argument('--var_status',     dest='var_status',          type=str,       default="Cons_high,Cons_low,High,Low,Medium",
+                    help='Which type of exons to use during training')
 parser.add_argument('--output_dir',     dest='output_dir',          type=str,       default='output',
                     help='Directory to save the model and predictions')
+
 
 args = parser.parse_args()
 
 cols_PSI = np.asarray(args.cols_PSI.split(','), dtype=int)
 output_MLP = args.output_MLP
+var_status = np.asarray(args.var_status.split(','))
 output_dir = args.output_dir
 
 if args.hidden_MLP == '0':
@@ -81,11 +85,15 @@ for train_val_idxs, test_idxs in cv.split(varStatus, varStatus, genes):
     ynew = varStatus[train_val_idxs]
     groupsnew = genes[train_val_idxs]
     for train_idxs, val_idxs in cv.split(ynew, ynew, groupsnew):
+        train_idxs = train_val_idxs[train_idxs]
+        val_idxs = train_val_idxs[val_idxs]
         print('Size validation set: ')
         print(len(val_idxs))
         print('Size training set: ')
         print(len(train_idxs))
         break
+    
+    # Filter the train-val-test idxs by var status
     
     # Create dataloaders
     if data == 'EmbOnly':

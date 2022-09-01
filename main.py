@@ -25,6 +25,10 @@ print("[*] Selected device: ", device)
 
 parser = argparse.ArgumentParser(description='')
 
+parser.add_argument('--fn_emb',         dest='fn_emb',              type=str,       default='/athena/tilgnerlab/store/lim4020/HumanBrainHippProject/downsampled_emb.csv',
+                    help='File with the embeddings of spliceAI')
+parser.add_argument('--fn_PSI',         dest='fn_PSI',              type=str,       default='/athena/tilgnerlab/store/lim4020/HumanBrainHippProject/downsampled_PSI.csv',
+                    help='Directory to save the model and predictions')
 parser.add_argument('--cols_PSI',       dest='cols_PSI',            default='2,3,4,5,6',
                     help='Index of columns used to train the model (separated by commas)')
 parser.add_argument('--hidden_MLP',     dest='hidden_MLP',          default='0',
@@ -50,7 +54,6 @@ else:
     hidden_MLP = np.asarray(args.hidden_MLP.split(','), dtype=int)
 
 
-
 ## Most parameters are now hard-coded --> write complete arg parse later on.
 ## E.g. epochs, loss function, data type, network, batchsize... 
 ## Also hyperparameters of MLP are hardcoded (e.g. %dropouts, batchnormalization)
@@ -58,8 +61,8 @@ data = 'EmbOnly'
 scale = True
 runs = 5
 network = 'MLP'
-fn_emb = '/athena/tilgnerlab/store/lim4020/HumanBrainHippProject/downsampled_emb.csv'
-fn_PSI = '/athena/tilgnerlab/store/lim4020/HumanBrainHippProject/downsampled_PSI.csv'
+fn_emb = args.fn_emb
+fn_PSI = args.fn_PSI
 
 
 try:
@@ -71,8 +74,8 @@ os.chdir(output_dir)
 
 
 # Split data in train-val-test set (group by genes, stratify by variability)
-genes = pd.read_csv('/athena/tilgnerlab/store/lim4020/HumanBrainHippProject/downsampled_PSI.csv', usecols=[1]).values
-varStatus = pd.read_csv('/athena/tilgnerlab/store/lim4020/HumanBrainHippProject/downsampled_PSI.csv', usecols=[10]).values
+genes = pd.read_csv(fn_PSI, usecols=[1]).values
+varStatus = pd.read_csv(fn_PSI, usecols=[10]).values
 
 fold=0
 

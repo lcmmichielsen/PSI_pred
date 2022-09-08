@@ -11,7 +11,7 @@ import torch.nn as nn
 class MLP(nn.Module):
     """Simple MLP to test first."""
     
-    def __init__(self, input_dim=320, hidden_dim=[], output_dim=5):
+    def __init__(self, input_dim=320, hidden_dim=[], output_dim=5, dropout=0.5):
         """Initialize dataset
         
         Parameters
@@ -34,12 +34,12 @@ class MLP(nn.Module):
             fc_layers.append(nn.Linear(input_dim, output_dim))
         else:
             fc_layers.append(nn.Linear(input_dim, hidden_dim[0]))
-            fc_layers.append(nn.Dropout())
+            fc_layers.append(nn.Dropout(p=dropout))
             fc_layers.append(nn.ReLU())
             fc_layers.append(nn.BatchNorm1d(num_features=hidden_dim[0]))
             for i in range(len(hidden_dim)-1):
                 fc_layers.append(nn.Linear(hidden_dim[i], hidden_dim[i+1]))
-                fc_layers.append(nn.Dropout())
+                fc_layers.append(nn.Dropout(p=dropout))
                 fc_layers.append(nn.ReLU())
                 fc_layers.append(nn.BatchNorm1d(num_features=hidden_dim[i+1]))
             fc_layers.append(nn.Linear(hidden_dim[-1], output_dim))

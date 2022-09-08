@@ -11,6 +11,7 @@ import pickle
 import torch
 import torch.optim as optim
 from tensorboardX import SummaryWriter
+from evaluation import loss_difference
 
 def load_checkpoint(net, optimizer=None, scheduler=None, filename='model_last.pth.tar'):
     """Load checkpoint of a trained model."""
@@ -31,7 +32,7 @@ def load_checkpoint(net, optimizer=None, scheduler=None, filename='model_last.pt
     return start_epoch
 
 
-def evaluate(device, net, criterion, eval_loader):
+def evaluate(device, net, criterion, eval_loader, emp_diff = False):
     """
     Evaluate performance of the model
     
@@ -60,6 +61,10 @@ def evaluate(device, net, criterion, eval_loader):
             # Only calculate loss for defined values
             current_loss = criterion(out[tokeep].squeeze(), 
                                      PSI[tokeep].squeeze())
+            
+            if emp_diff:
+                current_loss = loss_difference(out, PSI, current_loss, criterion)
+            
             avg_loss += current_loss.item() / len(eval_loader)
             y_true.append(PSI.cpu().numpy().squeeze())
             y_pred.append(out.cpu().numpy().squeeze())
@@ -69,8 +74,8 @@ def evaluate(device, net, criterion, eval_loader):
 
 
 def train(device, net, criterion, learning_rate, lr_sched, num_epochs, 
-          train_loader, train_loader_eval, valid_loader, ckpt_dir, logs_dir,
-          evaluate_train = True, save_step = 10):
+          train_loader, train_loader_eval, valid_loader, ckpt_dir, logs_dir, 
+          emp_diff = False, evaluate_train = True, save_step = 10):
     """Train the model. 
     
     We only calculate the loss over the defined PSI values during training. 
@@ -91,7 +96,7 @@ def train(device, net, criterion, learning_rate, lr_sched, num_epochs,
     
     # Evaluate validation set before start training
     print("[*] Evaluating epoch %d..." % start_epoch)
-    avg_valid_loss, _, _, _ = evaluate(device, net, criterion, valid_loader)
+    avg_valid_loss, _, _, _ = evaluate(device, net, criterion, valid_loader, emp_diff)
     print("--- Average valid loss:                  %.4f" % avg_valid_loss)
 
     # Training epochs
@@ -116,6 +121,10 @@ def train(device, net, criterion, learning_rate, lr_sched, num_epochs,
                 out = net(emb)
                 current_loss = criterion(out[tokeep].squeeze(), 
                                          PSI[tokeep].squeeze())
+                
+                if emp_diff:
+                    current_loss = loss_difference(out, PSI, current_loss, criterion)
+
                 # print(current_loss)
                 # Backward pass and optimize
                 current_loss.backward()
@@ -134,12 +143,12 @@ def train(device, net, criterion, learning_rate, lr_sched, num_epochs,
         # Evaluate all training set and validation set at epoch
         print("[*] Evaluating epoch %d..." % (epoch + 1))
         if evaluate_train:
-            avg_train_loss, _, _, _ = evaluate(device, net, criterion, train_loader_eval)
+            avg_train_loss, _, _, _ = evaluate(device, net, criterion, train_loader_eval, emp_diff)
             print("--- Average train loss:                  %.4f" % avg_train_loss)
             
             logger.add_scalar('train_loss_epoch', avg_train_loss, epoch + 1)
 
-        avg_valid_loss, _, _, _ = evaluate(device, net, criterion, valid_loader)
+        avg_valid_loss, _, _, _ = evaluate(device, net, criterion, valid_loader, emp_diff)
         print("--- Average valid loss:                  %.4f" % avg_valid_loss)
         
         # Check if best model
@@ -160,14 +169,14 @@ def train(device, net, criterion, learning_rate, lr_sched, num_epochs,
     
     
 
-def test(device, net, criterion, model_file, test_loader, save_file=None):
+def test(device, net, criterion, model_file, test_loader, emp_diff, save_file=None):
     """Test performance of the current model and write results to a file."""
     
     # Load pretrained model
     _ = load_checkpoint(net, filename=model_file)
     
     # Evaluate model
-    avg_test_loss, y_true, y_pred, ID = evaluate(device, net, criterion, test_loader)
+    avg_test_loss, y_true, y_pred, ID = evaluate(device, net, criterion, test_loader, emp_diff)
 
     # Save predictions
     if save_file is not None:

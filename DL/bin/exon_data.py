@@ -16,11 +16,7 @@ import pandas as pd
 from sklearn.model_selection import GroupKFold
 
 import pysam
-
 import tensorflow as tf
-
-os.chdir('/tudelft.net/staff-bulk/ewi/insy/DBL/lmichielsen/PSI_project/saluki')
-
 from basenji.dna_io import dna_1hot
 
 parser = argparse.ArgumentParser(description='')
@@ -31,21 +27,21 @@ parser.add_argument('--file_glia',        dest='file_glia',     default='PSI_gli
                     help='File with glia PSI values')
 parser.add_argument('--file_neur',        dest='file_neur',     default='PSI_neur_norm.csv',
                     help='File with neur PSI values')
-parser.add_argument('--file_folds',       dest='file_folds',    default='exon_info_folds.csv',
-                    help='File with predefined folds for the 10fold CV')
+parser.add_argument('--file_folds',       dest='file_folds',    default='None',
+                    help='File with predefined folds for the 10fold CV - needed when combining mouse and human')
 parser.add_argument('--species',        dest='species',     default='human',
                     help='human or mouse')
 parser.add_argument('--out',            dest='out',             default='tfrecords_all',
                     help='Output directory for the TFRecords')
 parser.add_argument('--var_threshold',     dest='var_threshold',          type=float,     default=0.0,
                     help='Filter exons based on minimum delta PSI between neurons and glia')
-parser.add_argument('--max_length',     dest='max_length',          type=int,     default=3072,
+parser.add_argument('--max_length',     dest='max_length',          type=int,     default=6144,
                     help='Maximum input length to the model')
-parser.add_argument('--num_layers',     dest='num_layers',          type=int,     default=4,
+parser.add_argument('--num_layers',     dest='num_layers',          type=int,     default=5,
                     help='Number of convolution layers in the Saluki model (related to input length)')
-parser.add_argument('--padding',     dest='padding',          type=int,     default=400,
-                    help='Padding around the exon sequence')
-parser.add_argument('--RBPs',           dest='RBPs',                type=str,       default="UCHL5,AQR,BUD13,HNRNPC,YBX3,PPIG",
+parser.add_argument('--padding',     dest='padding',          type=int,     default=6000,
+                    help='Maximum padding around the exon sequence')
+parser.add_argument('--RBPs',           dest='RBPs',                type=str,       default="",
                     help='Which RBPs to add as input')
 parser.add_argument('--encode',         dest='encode',              type=str,       default='sparse',
                     help='How to encode the begin and end of the exon (either "complete" or "sparse"')
@@ -84,12 +80,14 @@ general_out_dir = general_dir + '/' + out_dir
 # We need both for var threshold, even if we're interested in single-task model
 PSI_glia = pd.read_csv(general_dir + '/' + file_glia, index_col = 0)
 PSI_neur = pd.read_csv(general_dir + '/' + file_neur, index_col = 0)
-exon_folds = pd.read_csv(general_dir + '/' + file_folds, index_col=0)
 
 idx_tokeep = (PSI_neur['0'] >= 0) & (PSI_glia['0'] >= 0)
 PSI_neur = PSI_neur.loc[idx_tokeep]
 PSI_glia = PSI_glia.loc[idx_tokeep]
-exon_folds.loc[idx_tokeep]
+
+if file_folds != 'None':
+    exon_folds = pd.read_csv(general_dir + '/' + file_folds, index_col=0)
+    exon_folds.loc[idx_tokeep]
 
 # Characteristics of the exons (needed to extract seq. later on)
 exon_info = pd.DataFrame(PSI_glia.index)[0].str.split('_', expand=True)
@@ -380,10 +378,16 @@ genes = exon_info['ENSG']
 cv = GroupKFold(n_splits=10)
 num_fold = 0
 
-# for train_val_idxs, test_idxs in cv.split(PSI_glia, PSI_glia, genes):  
 for i in range(10):
-    test_idxs = exon_folds['Fold'] == i
-    train_val_idxs = exon_folds['Fold'] != i
+
+    if file_folds != 'None':
+    
+        test_idxs = exon_folds['Fold'] == i
+        train_val_idxs = exon_folds['Fold'] != i
+        
+    else:
+        train_test_indices = list(cv.split(PSI_glia, PSI_glia, genes))
+        train_val_idxs, test_idxs = train_test_indices[i]
     
     cv2 = GroupKFold(n_splits=9)
     train_val_indices = list(cv2.split(PSI_glia.iloc[train_val_idxs],

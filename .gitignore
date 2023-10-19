@@ -1,2 +1,4 @@
 *.ini
 *.bak
+Figures/.ipynb_checkpoints/*
+*.pyc

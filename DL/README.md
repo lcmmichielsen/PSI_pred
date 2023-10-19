@@ -1,6 +1,6 @@
 # Deep learning models
 
-Our deep learning models are based on the [Saluki](https://doi.org/10.1186/s13059-022-02811-x) model. Therefore this repository is forked from the original [Basenji](https://github.com/calico/basenji) repository. We adapted the 'rnann.py' and 'dataset.py' scripts in the 'basenji' folder such that they can work with exons as input. We also added 'exon_*.py' scripts to generate datasets, train the models, test the models, and do ISM. In the tutorials folder, we explain how to use these.
+Our deep learning models are based on the [Saluki](https://doi.org/10.1186/s13059-022-02811-x) model. Therefore this repository is forked from the original [Basenji](https://github.com/calico/basenji) repository, which contains the code for the Saluki model. We adapted the 'rnann.py' and 'dataset.py' scripts in the 'basenji' folder such that they can work with exons as input. We also added 'exon_*.py' scripts in the 'bin' folder to generate datasets, train the models, test the models, and do ISM. In the tutorials folder, we explain how to use these.
 
 ### Installation
 Installation is similar to installing Basenji:

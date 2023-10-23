@@ -7,34 +7,14 @@ Installation is similar to installing Basenji:
 
 These tools were developed with Python3 and various scientific computing dependencies, which you can see and install via requirements.txt for pip and environment.yml for [Anaconda](https://www.continuum.io/downloads). For each case, we kept TensorFlow separate to allow you to choose the install method that works best for you. The codebase is compatible with the latest TensorFlow 2, but should also work with 1.15.
 
-Run the following to install dependencies and Basenji with Anaconda.
-```
-    conda env create -f environment.yml
-    conda install tensorflow (or tensorflow-gpu)
-    python setup.py develop --no-deps
-```
-
-Alternatively, if you want to guarantee working versions of each dependency, you can install via a fully pre-specified environment.
-```
-    conda env create -f prespecified.yml
-    conda install tensorflow (or tensorflow-gpu)
-    python setup.py develop --no-deps
-```
-
-Or the following to install dependencies and Basenji with pip and setuptools.
-```
-    python setup.py develop
-    pip install tensorflow (or tensorflow-gpu)
-```
-
-Then we recommend setting the following environmental variables.
-```
-  export BASENJIDIR=~/code/Basenji
-  export PATH=$BASENJIDIR/bin:$PATH
-  export PYTHONPATH=$BASENJIDIR/bin:$PYTHONPATH
-```
+The easiest way to install the package is as follows:
+- Create a new conda environment
+- Install TensorFlow using the instructions on their [website](https://www.tensorflow.org/install)
+- Clone this repo
+- Run `pip setup.py develop`
 
 To verify the install, launch python and run
+
 ```
     import basenji
 ```

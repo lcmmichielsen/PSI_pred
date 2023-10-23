@@ -123,13 +123,6 @@ def main():
   else:
     seqnn_trainer.fit2(seqnn_model)
     
-  ## When finished
-  fn = options.out_dir.replace('/', '_')
-  with open(fn, 'x') as f:
-    f.write('Finished!')
-
-
-
 ################################################################################
 # __main__
 ################################################################################

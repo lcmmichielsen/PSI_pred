@@ -24,7 +24,6 @@ try:
 except ImportError:
   pass
 from tensorflow.keras import mixed_precision
-from tensorflow.python.keras import backend
 from tensorflow.python.ops import math_ops
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import dtypes
@@ -151,6 +150,19 @@ class Trainer:
       self.compile(seqnn_model)
 
     assert(len(seqnn_model.models) >= self.num_datasets)
+
+    # inform optimizer about all trainable variables (v2.11-)
+    vars_set = set()
+    trainable_vars = []
+    for di in range(self.num_datasets):
+      for v in seqnn_model.models[di].trainable_variables:
+        if v.name not in vars_set:
+          vars_set.add(v.name)
+          trainable_vars.append(v)
+    try:
+      self.optimizer.build(trainable_vars)
+    except AttributeError:
+      pass
 
     ################################################################
     # prep
@@ -400,7 +412,6 @@ class Trainer:
     if self.strategy is None:
       @tf.function
       def train_step(x, y):
-        # idx_notna = np.isnan(y) == False
         with tf.GradientTape() as tape:
           pred = model(x, training=True)
           loss = self.loss_fn(y, pred) + sum(model.losses)
@@ -414,7 +425,6 @@ class Trainer:
 
       @tf.function
       def eval_step(x, y):
-        # idx_notna = np.isnan(y) == False
         pred = model(x, training=False)
         loss = self.loss_fn(y, pred) + sum(model.losses)
         valid_loss(loss)
@@ -423,7 +433,6 @@ class Trainer:
 
     else:
       def train_step(x, y):
-        # idx_notna = np.isnan(y) == False
         with tf.GradientTape() as tape:
           pred = model(x, training=True)
           loss_batch_len = self.loss_fn(y, pred)
@@ -445,7 +454,6 @@ class Trainer:
 
 
       def eval_step(x, y):
-        # idx_notna = np.isnan(y) == False
         pred = model(x, training=False)
         loss = self.loss_fn(y, pred) + sum(model.losses)
         valid_loss(loss)
@@ -532,11 +540,11 @@ class Trainer:
 
         # reset metrics
         train_loss.reset_states()
-        train_r.reset_state()
-        train_r2.reset_state()
+        train_r.reset_states()
+        train_r2.reset_states()
         valid_loss.reset_states()
-        valid_r.reset_state()
-        valid_r2.reset_state()
+        valid_r.reset_states()
+        valid_r2.reset_states()
 
 
   def make_optimizer(self):
@@ -593,7 +601,7 @@ class Trainer:
           beta_1=self.params.get('adam_beta1',0.9),
           beta_2=self.params.get('adam_beta2',0.999),
           clipnorm=clip_norm,
-          #global_clipnorm=global_clipnorm,
+          global_clipnorm=global_clipnorm,
           amsgrad=False) # reduces performance in my experience
 
     elif optimizer_type == 'adamw':
@@ -603,7 +611,7 @@ class Trainer:
           beta_1=self.params.get('adam_beta1',0.9),
           beta_2=self.params.get('adam_beta2',0.999),
           clipnorm=clip_norm,
-          #global_clipnorm=global_clipnorm,
+          global_clipnorm=global_clipnorm,
           amsgrad=False) # reduces performance in my experience
 
     elif optimizer_type in ['sgd', 'momentum']:
@@ -611,8 +619,7 @@ class Trainer:
           learning_rate=lr_schedule,
           momentum=self.params.get('momentum', 0.99),
           clipnorm=clip_norm,
-          #global_clipnorm=global_clipnorm
-          )
+          global_clipnorm=global_clipnorm)
 
     else:
       print('Cannot recognize optimization algorithm %s' % optimizer_type)

@@ -19,10 +19,6 @@ from optparse import OptionParser
 import json
 import os
 import shutil
-import sys
-
-import numpy as np
-import tensorflow as tf
 
 from basenji import dataset
 from basenji import rnann

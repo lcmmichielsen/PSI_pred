@@ -5,12 +5,9 @@ Created on Fri Oct 21 15:03:57 2022
 @author: lcmmichielsen
 """
 
-import os
 from pathlib import Path
 import argparse
 import json
-import shutil
-import pickle
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupKFold
@@ -21,16 +18,16 @@ from basenji.dna_io import dna_1hot
 
 parser = argparse.ArgumentParser(description='')
 
-parser.add_argument('--dir',            dest='dir',             default='/tudelft.net/staff-bulk/ewi/insy/DBL/lmichielsen/PSI_project/Data/HippData',
+parser.add_argument('--dir',            dest='dir',             default='Zenodo/Human/HPC/',
                     help='Directory to with PSI values')
-parser.add_argument('--file_glia',        dest='file_glia',     default='PSI_glia_norm.csv',
+parser.add_argument('--file_glia',        dest='file_glia',     default='PSI/PSI_glia_norm.csv',
                     help='File with glia PSI values')
-parser.add_argument('--file_neur',        dest='file_neur',     default='PSI_neur_norm.csv',
+parser.add_argument('--file_neur',        dest='file_neur',     default='PSI/PSI_neur_norm.csv',
                     help='File with neur PSI values')
 parser.add_argument('--file_folds',       dest='file_folds',    default='None',
                     help='File with predefined folds for the 10fold CV - needed when combining mouse and human')
-parser.add_argument('--species',        dest='species',     default='human',
-                    help='human or mouse')
+parser.add_argument('--file_fasta',       dest='file_fasta',    default='GRCh38.primary_assembly.genome.fa',
+                    help='Fasta file with reference genome (either GRCh38 or mm10 depending on species)')
 parser.add_argument('--out',            dest='out',             default='tfrecords_all',
                     help='Output directory for the TFRecords')
 parser.add_argument('--var_threshold',     dest='var_threshold',          type=float,     default=0.0,
@@ -43,14 +40,6 @@ parser.add_argument('--padding',     dest='padding',          type=int,     defa
                     help='Maximum padding around the exon sequence')
 parser.add_argument('--RBPs',           dest='RBPs',                type=str,       default="",
                     help='Which RBPs to add as input')
-parser.add_argument('--encode',         dest='encode',              type=str,       default='sparse',
-                    help='How to encode the begin and end of the exon (either "complete" or "sparse"')
-parser.add_argument('--cell_type',      dest='cell_type',           type=str,       default='both',
-                    help='Which celltype') # 'glia' / 'neurons' / 'both'
-parser.add_argument('--exon_list',      dest='exon_list',           type=str,       default='None',
-                    help='Exons to include in tfrecords')
-# If both, we generate three dir: 1. glia, 2. neuron, 3. multihead
-# If glia or neurons, we generate only the glia or neuron dir.
 
 args = parser.parse_args()
 
@@ -58,26 +47,17 @@ general_dir = args.dir
 file_glia = args.file_glia
 file_neur = args.file_neur
 file_folds = args.file_folds
-species = args.species
-out_dir = args.out
-cell_type = args.cell_type
+file_fasta = args.file_fasta
+general_out_dir = args.out
 var_threshold = args.var_threshold
 max_length = args.max_length
 num_layers = args.num_layers
 padding = args.padding
-encode = args.encode
-exon_list = args.exon_list
 RBPs = args.RBPs
 if np.all(RBPs == '') == False:
     RBPs = np.asarray(args.RBPs.split(','))
-    
-if exon_list != 'None':
-    exons_tokeep = pd.read_csv(exon_list, index_col=0)
-    
-general_out_dir = general_dir + '/' + out_dir
-
+        
 # Read both the neuronal and glia PSI values
-# We need both for var threshold, even if we're interested in single-task model
 PSI_glia = pd.read_csv(general_dir + '/' + file_glia, index_col = 0)
 PSI_neur = pd.read_csv(general_dir + '/' + file_neur, index_col = 0)
 
@@ -96,9 +76,8 @@ exon_info = exon_info.rename(columns={0: 'chr', 1: 'start', 2: 'end',
 
 ## Load the peaks
 if np.all(RBPs == '') == False:
-    peaks_path = general_dir + '/RBP_coor_repl.pickle'
-    with open(peaks_path, 'rb') as handle:
-        RBP_coor_repl, rows, columns = pickle.load(handle)
+    peaks_path = general_dir + '/RBP/RBP_coor_repl.pickle'
+    RBP_coor_repl, rows, columns = pd.read_pickle(peaks_path)
     peaks = pd.DataFrame(RBP_coor_repl, index=rows, columns=columns)
 else:
     peaks=0
@@ -106,7 +85,7 @@ else:
 # Function to generate the data
 def create_tfrecords(PSI, exon_info, train_idxs, val_idxs, 
                      test_idxs, fold, general_out_dir, peaks,
-                     max_length, num_layers, padding, encode):
+                     max_length, num_layers, padding):
     
     fold_dir = general_out_dir + '/fold' + str(num_fold)
     tfr_dir = fold_dir + '/tfrecords' 
@@ -134,11 +113,7 @@ def create_tfrecords(PSI, exon_info, train_idxs, val_idxs,
     padding = padding
     
     # open FASTA
-    if species == 'human':
-        fasta_file = '../Ref/GRCh38.primary_assembly.genome.fa'
-    elif species == 'mouse':
-        fasta_file = '../Ref/mm10.fa'
-    fasta_open = pysam.Fastafile(fasta_file)
+    fasta_open = pysam.Fastafile(file_fasta)
     
     def rc(seq):
         return seq.translate(str.maketrans("ATCGatcg","TAGCtagc"))[::-1]
@@ -211,13 +186,7 @@ def create_tfrecords(PSI, exon_info, train_idxs, val_idxs,
                     
                     # splicing
                     splicing = np.zeros((seq_len,1), dtype=np.int8)
-                    if encode == 'sparse':
-                        splicing[splicing_ind] = 1
-                    else:
-                        if len(splicing_ind) == 2:
-                            splicing[splicing_ind[0]:splicing_ind[1]] =1
-                        else:
-                            splicing[splicing_ind[0]:] = 1
+                    splicing[splicing_ind] = 1
                                 
                     # get targets
                     targets = PSI_val_set.iloc[si].values
@@ -311,67 +280,17 @@ def create_tfrecords(PSI, exon_info, train_idxs, val_idxs,
     
     with open('%s/params.json' % fold_dir, 'w') as params_json_out:
         json.dump(params_dict, params_json_out, indent=4)
-
-
-# Function to generate the data
-def create_multihead_dir(fold, general_out_dir, max_length, num_layers):
-    
-    fold_dir = general_out_dir + '/fold' + str(num_fold)
-    Path(fold_dir).mkdir(parents=True, exist_ok=True)
-
-    # # Write statistics.json
-    # stats_dict = {}
-    # stats_dict['num_targets'] = 2
-    # stats_dict['seq_length'] = max_seq_length
-    # stats_dict['target_length'] = 1
-    
-    # for fi in range(num_folds):
-    #     stats_dict['%s_seqs' % fold_labels[fi]] = len(fold_indexes[fi])
-    
-    # with open('%s/statistics.json' % fold_dir, 'w') as stats_json_out:
-    #     json.dump(stats_dict, stats_json_out, indent=4)
-    
-    max_seq_length = max_length
-    
-    # Copy the params.json
-    train_dict = {}
-    train_dict['batch_size'] = 64
-    train_dict['optimizer'] = 'adam'
-    train_dict['loss'] = 'mse'
-    train_dict['learning_rate'] = 0.0001
-    train_dict['adam_beta1'] = 0.90
-    train_dict['adam_beta2'] = 0.998
-    train_dict['global_clipnorm'] = 0.5
-    train_dict['train_epochs_min'] = 100
-    train_dict['train_epochs_max'] = 500
-    train_dict['patience'] = 50
-    
-    model_dict = {}
-    model_dict['activation'] = 'relu'
-    model_dict['rnn_type'] = 'gru'
-    model_dict['seq_length'] = max_seq_length
-    if np.all(RBPs == '') == False:
-        model_dict['seq_depth'] = len(RBPs) + 5
-    else:
-        model_dict['seq_depth'] = 5
-    model_dict['augment_shift'] = 3
+        
+    ## Params_multitask.json
+    ## Basically the same, but heads = 2
     model_dict['num_targets'] = [1,1]
     model_dict['heads'] = 2
-    model_dict['filters'] = 64
-    model_dict['kernel_size'] = 5
-    model_dict['dropout'] = 0.3
-    model_dict['l2_scale'] = 0.001
-    model_dict['ln_epsilon'] = 0.007
-    model_dict['num_layers'] = num_layers
-    model_dict['bn_momentum'] = 0.90
-    
     params_dict = {}
     params_dict['train'] = train_dict
     params_dict['model'] = model_dict
     
-    with open('%s/params.json' % fold_dir, 'w') as params_json_out:
+    with open('%s/params_multitask.json' % fold_dir, 'w') as params_json_out:
         json.dump(params_dict, params_json_out, indent=4)
-
 
 # Do the CV
 genes = exon_info['ENSG']
@@ -381,9 +300,8 @@ num_fold = 0
 for i in range(10):
 
     if file_folds != 'None':
-    
-        test_idxs = exon_folds['Fold'] == i
-        train_val_idxs = exon_folds['Fold'] != i
+        test_idxs = np.where(exon_folds['Fold'] == i)[0]
+        train_val_idxs = np.where(exon_folds['Fold'] != i)[0]
         
     else:
         train_test_indices = list(cv.split(PSI_glia, PSI_glia, genes))
@@ -419,29 +337,18 @@ for i in range(10):
         print('Size test set: ')
         print(len(test_idxs))
         
-    if exon_list != 0:
-        
-        train_idxs = train_idxs[np.isin(genes[train_idxs], exons_tokeep)]
-        val_idxs = val_idxs[np.isin(genes[val_idxs], exons_tokeep)]
-        test_idxs = test_idxs[np.isin(genes[test_idxs], exons_tokeep)]
-        
+    # Glia
+    create_tfrecords(PSI_glia, exon_info, train_idxs,
+                     val_idxs, test_idxs, num_fold, 
+                     general_out_dir + '/glia', peaks,
+                     max_length, num_layers, padding)
     
-    if (cell_type == 'glia') or (cell_type == 'both'):
-        create_tfrecords(PSI_glia, exon_info, train_idxs,
-                         val_idxs, test_idxs, num_fold, 
-                         general_out_dir + '/glia', peaks,
-                         max_length, num_layers, padding, encode)
+    # Neurons
+    create_tfrecords(PSI_neur, exon_info, train_idxs,
+                     val_idxs, test_idxs, num_fold, 
+                     general_out_dir + '/neur', peaks,
+                     max_length, num_layers, padding)
         
-    if (cell_type == 'neurons') or (cell_type == 'both'):
-        create_tfrecords(PSI_neur, exon_info, train_idxs,
-                         val_idxs, test_idxs, num_fold, 
-                         general_out_dir + '/neur', peaks,
-                         max_length, num_layers, padding, encode)
-        
-    if (cell_type == 'both'):
-        create_multihead_dir(num_fold, general_out_dir + '/both',
-                             max_length, num_layers)
-    
     
     num_fold += 1
     if num_fold == 10:

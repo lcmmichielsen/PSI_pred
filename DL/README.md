@@ -18,3 +18,9 @@ To verify the install, launch python and run
 ```
     import basenji
 ```
+
+### Training the models
+See the [Tutorials](./tutorial) folder for information about training your own models. Example input data can be downloaded from Zenodo.
+
+### Analyzing the results
+See the [Figure reproducibility](../Figures) folder for information on how to analyze your results.

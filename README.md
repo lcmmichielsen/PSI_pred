@@ -1,22 +1,7 @@
-# PSI_pred
+# Predicting cell-type-specific PSI values
 
-/athena/tilgnerlab/store/lim4020/HumanBrainHippProject
+This GitHub repository can be used to reproduce the results from [add biorxiv link] to predict cell-type-specific PSI values using long-read single-cell sequencing data. Information on how to train linear regression (LR) and deep learning (DL) models can be found in the corresponding folders. How to analyze the results and reproduce the figures from the manuscript can be found in the [Figures](Figures) folder.
 
-Downsamples PSI values and embeddings: 
-- downsampled_PSI.csv (contains also column 'HumanGene' with the genename and 'variabilityStatus' with the group it belongs to (low/medium/high/cons_low/cons_high/fake))
-- downsampled_emb.csv
+Input data and results can be downloaded from [ADD ZENODO LINK].
 
-PSI values:
-- variable exons: altInHumans_10_90_cellType_withClassification
-- const. exons: consInHumans_5_95_cellType
-- fake exons: exons_fake.csv (--> just zeros everywhere)
-
-SpliceAI embeddings: 
-- exons_var_emb_start.csv
-- exons_var_emb_end.csv
-- exons_cons_emb_start.csv
-- exons_cons_emb_end.csv
-- exons_fake_emb_start.csv
-- exons_fake_emb_end.csv
-
-
+For citation and further information, please refer to [ADD BIORXIV LINK].

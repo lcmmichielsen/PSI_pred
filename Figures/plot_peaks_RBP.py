@@ -99,8 +99,8 @@ def plot_peaks_RBP(RBP, exons_info, peaks, PSI_glia, PSI_neur,
     
     bins_RBP_sum_lowPSI_var_glia = np.sum(bins_RBP_var[PSI_var['0'] < lowthres], axis=0)/np.sum(PSI_var['0'] < lowthres)
     bins_RBP_sum_higPSI_var_glia = np.sum(bins_RBP_var[PSI_var['0'] >= highthres], axis=0)/np.sum(PSI_var['0'] >= highthres)    
-    bins_RBP_sum_lowPSI_cons = np.sum(bins_RBP_cons[PSI_cons['0'] < 0.5], axis=0)/np.sum(PSI_cons['0'] < 0.5)
-    bins_RBP_sum_higPSI_cons = np.sum(bins_RBP_cons[PSI_cons['0'] >= 0.5], axis=0)/np.sum(PSI_cons['0'] >= 0.5)
+    bins_RBP_sum_lowPSI_cons = np.sum(bins_RBP_cons[PSI_cons['0'] < lowthres], axis=0)/np.sum(PSI_cons['0'] < 0.5)
+    bins_RBP_sum_higPSI_cons = np.sum(bins_RBP_cons[PSI_cons['0'] >= highthres], axis=0)/np.sum(PSI_cons['0'] >= 0.5)
 
     ### Neurons
     PSI_var = PSI_neur[var_exons]
@@ -118,46 +118,58 @@ def plot_peaks_RBP(RBP, exons_info, peaks, PSI_glia, PSI_neur,
             
     plt.figure(figsize=(3,2))
     plt.axvline(400, c='lightgrey')
-    plt.axvline(450, c='lightgrey')
+    plt.axvline(600, c='lightgrey')
     sns.lineplot(y=bins_RBP_sum_higPSI_var_glia, 
-                 x=np.linspace(start=0,stop=849,num=850), color='#D55E00')
+                 x=np.hstack((np.linspace(0, 399, 400),
+                              np.linspace(400, 596, 50),
+                              np.linspace(600, 999, 400))), color='#EF9557')
     sns.lineplot(y=bins_RBP_sum_lowPSI_var_glia, 
-                 x=np.linspace(start=0,stop=849,num=850), color='#029E73')
+                 x=np.hstack((np.linspace(0, 399, 400),
+                              np.linspace(400, 596, 50),
+                              np.linspace(600, 999, 400))), color='#EF9557', linestyle=':')
     plt.ylim([0, lim+0.01])
     plt.title(RBP + ' (Glia)')
     sns.despine()
     
     if save:
-        plt.savefig('Evaluate models/Figures/' + folder + RBP + '_glia.pdf', bbox_inches='tight', dpi=1000)
+        plt.savefig('../../PSI_prediction/Evaluate models/Figures/' + folder + RBP + '_glia.pdf', bbox_inches='tight', dpi=1000)
     plt.show()
     
     
     plt.figure(figsize=(3,2))
     plt.axvline(400, c='lightgrey')
-    plt.axvline(450, c='lightgrey')
+    plt.axvline(600, c='lightgrey')
     sns.lineplot(y=bins_RBP_sum_higPSI_var_neur, 
-                 x=np.linspace(start=0,stop=849,num=850), color='#D55E00')
+                 x=np.hstack((np.linspace(0, 399, 400),
+                              np.linspace(400, 596, 50),
+                              np.linspace(600, 999, 400))), color='#5F9DD6')
     sns.lineplot(y=bins_RBP_sum_lowPSI_var_neur, 
-                 x=np.linspace(start=0,stop=849,num=850), color='#029E73')
+                 x=np.hstack((np.linspace(0, 399, 400),
+                              np.linspace(400, 596, 50),
+                              np.linspace(600, 999, 400))), color='#5F9DD6', linestyle=':')
     plt.ylim([0, lim+0.01])
     plt.title(RBP + ' (Neurons)')
     sns.despine()
     if save:
-        plt.savefig('Evaluate models/Figures/' + folder + RBP + '_neur.pdf', bbox_inches='tight', dpi=1000)
+        plt.savefig('../../PSI_prediction/Evaluate models/Figures/' + folder + RBP + '_neur.pdf', bbox_inches='tight', dpi=1000)
     plt.show()
     
     plt.figure(figsize=(3,2))
     plt.axvline(400, c='lightgrey')
-    plt.axvline(450, c='lightgrey')
+    plt.axvline(600, c='lightgrey')
     sns.lineplot(y=bins_RBP_sum_higPSI_cons, 
-                 x=np.linspace(start=0,stop=849,num=850), color='#D55E00')
+                 x=np.hstack((np.linspace(0, 399, 400),
+                              np.linspace(400, 596, 50),
+                              np.linspace(600, 999, 400))), color='#707071')
     sns.lineplot(y=bins_RBP_sum_lowPSI_cons, 
-                 x=np.linspace(start=0,stop=849,num=850), color='#029E73')
+                 x=np.hstack((np.linspace(0, 399, 400),
+                              np.linspace(400, 596, 50),
+                              np.linspace(600, 999, 400))), color='#707071', linestyle=':')
     plt.ylim([0, lim+0.01])
     plt.title(RBP + ' (Cons. exons)')
     sns.despine()
     if save:
-        plt.savefig('Evaluate models/Figures/' + folder + RBP + '_cons.pdf', bbox_inches='tight', dpi=1000)
+        plt.savefig('../../PSI_prediction/Evaluate models/Figures/' + folder + RBP + '_cons.pdf', bbox_inches='tight', dpi=1000)
     plt.show()
     
 #     return bins_RBP
